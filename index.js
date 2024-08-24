@@ -70,7 +70,7 @@ app.get("/api/:character", async (req, res) => {
     });
 
     // Cierra el navegador
-    // await browser.close();
+    await browser.close();
     res.status(200).send(elementos);
   } catch (err) {
     console.error(err);
