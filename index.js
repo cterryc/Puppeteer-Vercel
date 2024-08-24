@@ -1,11 +1,9 @@
 const app = require("express")();
-
 const chrome = require("@sparticuz/chromium");
-// const puppeteerCore = require("puppeteer-core");
-// const puppeteer = require("puppeteer")
 const production = process.env.NODE_ENV === "production";
 
 let puppeteer;
+let browser;
 
 if (production) {
   puppeteer = require("puppeteer-core");
@@ -13,24 +11,42 @@ if (production) {
   puppeteer = require("puppeteer");
 }
 
+(async () => {
+  browser = await puppeteer.launch(
+    production
+      ? {
+          args: chrome.args,
+          defaultViewport: chrome.defaultViewport,
+          executablePath: await chrome.executablePath(),
+          headless: "new",
+          ignoreHTTPSErrors: true,
+        }
+      : {}
+  );
+})();
+
 app.get("/api/:character", async (req, res) => {
   const { character } = req.params;
   const urlCharacter = `https://armory.warmane.com/character/${character}/Icecrown/summary`;
-  try {
-    const browser = await puppeteer.launch(
-      production
-        ? {
-            args: chrome.args,
-            defaultViewport: chrome.defaultViewport,
-            executablePath: await chrome.executablePath(),
-            headless: "new",
-            ignoreHTTPSErrors: true,
-          }
-        : {}
-    );
 
+  try {
     const page = await browser.newPage();
-    await page.goto(urlCharacter);
+
+    // Configura la intercepción de solicitudes antes de la navegación
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const resourceType = req.resourceType();
+      if (["image", "stylesheet", "font"].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    // Navega a la página y espera a que los selectores clave se carguen
+    await page.goto(urlCharacter, { timeout: 15000 });
+    await page.waitForSelector(".item-left div div a"); // Especifica un selector que esperas ver en la página
+
     const elementos = await page.evaluate(() => {
       const left = document.querySelectorAll(".item-left div div a");
       const right = document.querySelectorAll(".item-right div div a");
@@ -69,12 +85,11 @@ app.get("/api/:character", async (req, res) => {
       };
     });
 
-    // Cierra el navegador
-    await browser.close();
+    await page.close(); // Cierra la pestaña pero no el navegador
     res.status(200).send(elementos);
   } catch (err) {
     console.error(err);
-    return null;
+    res.status(500).send({ error: "Error al procesar la solicitud" });
   }
 });
 
