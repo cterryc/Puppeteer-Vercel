@@ -1,30 +1,31 @@
 const app = require("express")();
 
-let chrome = {};
+const chrome = require("@sparticuz/chromium");
+// const puppeteerCore = require("puppeteer-core");
+// const puppeteer = require("puppeteer")
+const production = process.env.NODE_ENV === "production";
+
 let puppeteer;
 
-if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-  chrome = require("chrome-aws-lambda");
+if (production) {
   puppeteer = require("puppeteer-core");
 } else {
   puppeteer = require("puppeteer");
 }
 
 app.get("/api", async (req, res) => {
-  let options = {};
-
-  if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-    options = {
-      args: [...chrome.args, "--hide-scrollbars", "--disable-web-security"],
-      defaultViewport: chrome.defaultViewport,
-      executablePath: await chrome.executablePath,
-      headless: true,
-      ignoreHTTPSErrors: true,
-    };
-  }
-
   try {
-    let browser = await puppeteer.launch(options);
+    const browser = await puppeteer.launch(
+      production
+        ? {
+            args: chrome.args,
+            defaultViewport: chrome.defaultViewport,
+            executablePath: await chrome.executablePath(),
+            headless: "new",
+            ignoreHTTPSErrors: true,
+          }
+        : {}
+    );
 
     let page = await browser.newPage();
     await page.goto("https://www.google.com");
