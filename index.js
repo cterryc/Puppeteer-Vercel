@@ -25,7 +25,18 @@ if (production) {
   );
 })();
 
-app.get("/api/:character", async (req, res) => {
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // ! se puede cambiar  "*" para habilitar todos los puertos y evitar problemas de CORS
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE");
+  next();
+});
+
+app.get("/api/:character", async (req, res, next) => {
   const { character } = req.params;
   const urlCharacter = `https://armory.warmane.com/character/${character}/Icecrown/summary`;
 
@@ -86,15 +97,24 @@ app.get("/api/:character", async (req, res) => {
     });
 
     await page.close(); // Cierra la pestaña pero no el navegador
+    console.log("Scrap here");
     res.status(200).send(elementos);
   } catch (err) {
     console.error(err);
-    res.status(500).send({ error: "Error al procesar la solicitud" });
+    next(err);
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Server started");
+app.use((err, req, res, next) => {
+  const status = err.status || 500;
+  const message = err.message || err;
+  console.error("esto es err: ", err);
+  res.status(status).send(message);
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log("Server started port", PORT);
 });
 
 module.exports = app;
