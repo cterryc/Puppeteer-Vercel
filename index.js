@@ -1,6 +1,7 @@
 const app = require("express")();
 const chrome = require("@sparticuz/chromium");
 const production = process.env.NODE_ENV === "production";
+const wavPlayer = require("node-wav-player");
 
 let puppeteer;
 let browser;
@@ -41,6 +42,16 @@ app.get("/api/:character", async (req, res, next) => {
   const urlCharacter = `https://armory.warmane.com/character/${character}/Icecrown/summary`;
 
   try {
+    // wavPlayer
+    //   .play({
+    //     path: "./sounds/bep.wav",
+    //   })
+    //   .then(() => {
+    //     console.log("Sonido reproducido!");
+    //   })
+    //   .catch((error) => {
+    //     console.error("Error al reproducir el sonido:", error);
+    //   });
     const page = await browser.newPage();
 
     // Configura la intercepción de solicitudes antes de la navegación
@@ -56,7 +67,7 @@ app.get("/api/:character", async (req, res, next) => {
 
     // Navega a la página y espera a que los selectores clave se carguen
     await page.goto(urlCharacter, { timeout: 15000 });
-    await page.waitForSelector(".item-left div div a"); // Especifica un selector que esperas ver en la página
+    await page.waitForSelector(".item-left div div a", { timeout: 15000 }); // Especifica un selector que esperas ver en la página
 
     const elementos = await page.evaluate(() => {
       const left = document.querySelectorAll(".item-left div div a");
@@ -112,7 +123,7 @@ app.use((err, req, res, next) => {
   res.status(status).send(message);
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server started port", PORT);
 });
