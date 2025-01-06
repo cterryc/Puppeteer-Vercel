@@ -66,8 +66,8 @@ app.get("/api/:character", async (req, res, next) => {
     });
 
     // Navega a la página y espera a que los selectores clave se carguen
-    await page.goto(urlCharacter, { timeout: 15000 });
-    await page.waitForSelector(".item-left div div a", { timeout: 15000 }); // Especifica un selector que esperas ver en la página
+    await page.goto(urlCharacter, { timeout: 18000 });
+    await page.waitForSelector(".item-left div div a", { timeout: 18000 }); // Especifica un selector que esperas ver en la página
 
     const elementos = await page.evaluate(() => {
       const left = document.querySelectorAll(".item-left div div a");
